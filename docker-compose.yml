@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  grpc-server:
+    build:
+      context: ./
+      dockerfile: ./docker/grpc_server/Dockerfile
+    deploy:
+      replicas: 1
+    image: npuichigo/grpc-server
+    volumes:
+      - ./testdata:/grpc_gateway_demo/testdata:ro
+    networks:
+      - overlay
+    ports:
+      - "9090:9090"
+
+  grpc-gateway:
+    build:
+      context: ./
+      dockerfile: ./docker/grpc_gateway/Dockerfile
+    image: npuichigo/grpc-gateway
+    command: ["--proxy_endpoint", "grpc-server:9090"]
+    networks:
+      - overlay
+    links:
+      - grpc-server
+    ports:
+      - "8080:8080"
+
+networks:
+  overlay:

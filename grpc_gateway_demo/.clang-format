@@ -1,0 +1,4 @@
+# Run manually to reformat a file:
+# clang-format -assume-filename=tts_system/.clang-format <file>
+BasedOnStyle: Google
+DerivePointerAlignment: false
