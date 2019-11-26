@@ -46,8 +46,8 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 
-  glog.Info("Running grpc gateway proxy server on 0.0.0.0:8080")
-  glog.Info("Grpc endpoint is: ", proxyEndpoint)
+	glog.Info("Running grpc gateway proxy server on 0.0.0.0:8080")
+	glog.Info("Grpc endpoint is: ", proxyEndpoint)
 
 	if err := run(); err != nil {
 	  glog.Fatal(err)
