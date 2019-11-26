@@ -29,25 +29,25 @@ func run() error {
 	  return err
 	}
 
-  s := &http.Server {
-    Addr: ":8080",
-    Handler: allowCORS(mux),
-  }
+	s := &http.Server {
+	  Addr: ":8080",
+	  Handler: allowCORS(mux),
+	}
 
-  glog.Infof("Starting listening at %s", ":8080")
-  if err := s.ListenAndServe(); err != http.ErrServerClosed {
-    glog.Errorf("Failed to listen and server: %v", err)
-    return err
-  }
-  return nil
+	glog.Infof("Starting listening at %s", ":8080")
+	if err := s.ListenAndServe(); err != http.ErrServerClosed {
+	  glog.Errorf("Failed to listen and server: %v", err)
+	  return err
+	}
+	return nil
 }
 
 func main() {
 	flag.Parse()
 	defer glog.Flush()
 
-  glog.Info("Running grpc gateway proxy server on 0.0.0.0:8080")
-  glog.Info("Grpc endpoint is: ", proxyEndpoint)
+	glog.Info("Running grpc gateway proxy server on 0.0.0.0:8080")
+	glog.Info("Grpc endpoint is: ", proxyEndpoint)
 
 	if err := run(); err != nil {
 	  glog.Fatal(err)

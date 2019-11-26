@@ -35,6 +35,14 @@ static const int kBufferSize = 32 * 1024;
   auto wav_filename = request->filename();
   LOG(INFO) << "Get audio from grpc server: " << wav_filename;
 
+  std::string extension = wav_filename.substr(
+      wav_filename.find_last_of(".") + 1);
+  std::string content_type = "application/json";
+  if (extension == "mp3")
+    content_type = "audio/mp3";
+  else if (extension == "wav")
+    content_type = "audio/wav";
+
   std::ifstream input(wav_filename, std::ifstream::binary);
   int byte_read = 0;
   char buffer[kBufferSize];
@@ -45,7 +53,7 @@ static const int kBufferSize = 32 * 1024;
     input.read(buffer, kBufferSize);
     byte_read = input.gcount();
     ::google::api::HttpBody reply;
-    reply.set_content_type("audio/wav");
+    reply.set_content_type(content_type);
     reply.set_data(buffer, byte_read);
     writer->Write(reply);
     LOG(INFO) << "Send " << byte_read << " bytes";

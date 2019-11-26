@@ -28,5 +28,17 @@ services:
     ports:
       - "8080:8080"
 
+  nginx:
+    image: nginx
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.d/default.conf:ro
+      - ./public:/usr/share/nginx/html:ro
+    networks:
+      - overlay
+    links:
+      - grpc-gateway
+    ports:
+      - "80:80"
+
 networks:
   overlay:
