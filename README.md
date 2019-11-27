@@ -1,6 +1,6 @@
 # grpc_gateway_demo
 
-This repository is used to show the gRPC-JSON transcoder in grap-gateway(https://github.com/grpc-ecosystem/grpc-gateway) can be used together with stream google.api.HttpBody to support streaming media transfer. For example, in the scenario of text-to-speech, it's useful to synthesize speech with streaming mode to reduce latency. This demo also shows how we can automatically transcode streaming grpc to chunked http response.
+This repository is used to show the gRPC-HTTP transcoder in grap-gateway(https://github.com/grpc-ecosystem/grpc-gateway) can be used together with stream google.api.HttpBody to support streaming media transfer. For example, in the scenario of text-to-speech, it's useful to synthesize speech with streaming mode to reduce latency. This demo also shows how we can automatically transcode streaming grpc to chunked http response.
 
 ## Quick Start Guide
 
