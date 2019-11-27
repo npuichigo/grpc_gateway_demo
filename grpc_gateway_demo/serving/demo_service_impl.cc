@@ -26,7 +26,7 @@
 namespace grpc_gateway_demo {
 namespace serving {
 
-static const int kBufferSize = 32 * 1024;
+static const int kBufferSize = 64 * 1024;
 
 ::grpc::Status DemoServiceImpl::GetSomething(
     ::grpc::ServerContext* context,
@@ -57,7 +57,7 @@ static const int kBufferSize = 32 * 1024;
     reply.set_data(buffer, byte_read);
     writer->Write(reply);
     LOG(INFO) << "Send " << byte_read << " bytes";
-    usleep(500 * 1000);
+    usleep(100 * 1000);
   }
   input.close();
   return ::grpc::Status::OK;

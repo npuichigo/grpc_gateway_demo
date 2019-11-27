@@ -26,8 +26,7 @@ import "google/api/httpbody.proto";
 service Demo {
   rpc GetSomething(GetRequest) returns (stream google.api.HttpBody) {
     option (google.api.http) = {
-      post: "/get"
-      body: "*"
+      get: "/get"
     };
   }
 }
