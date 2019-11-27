@@ -65,6 +65,9 @@ grpc-server_1   | I1127 03:28:40.550000     9 demo_service_impl.cc:59] Send 6553
 
 You can now use your browser to play the streaming media.
 
+<img src="https://github.com/npuichigo/grpc_gateway_demo/blob/master/images/play_mp3.png"/>
+<img src="https://github.com/npuichigo/grpc_gateway_demo/blob/master/images/header.png" width="500"/>
+
 ## Test with grpc client
 
 Just start with the docker image grpc-server:
