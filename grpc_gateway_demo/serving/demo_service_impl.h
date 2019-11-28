@@ -17,6 +17,7 @@
 #ifndef GRPC_GATEWAY_DEMO_SERVING_DEMO_SERVICE_IMPL_H_
 #define GRPC_GATEWAY_DEMO_SERVING_DEMO_SERVICE_IMPL_H_
 
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -27,6 +28,8 @@
 
 namespace grpc_gateway_demo {
 namespace serving {
+
+using Callback = std::function<bool(const void* value, size_t size)>;
 
 // Logic and data behind the server's behavior.
 class DemoServiceImpl final : public Demo::Service {
