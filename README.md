@@ -8,8 +8,6 @@ Clone the repository and dependencies:
 ```sh
 git clone https://github.com/npuichigo/grpc_gateway_demo.git
 cd grpc_gateway_demo
-# Pull the dependent third_party repositories (if exists)
-git submodule update --init
 ```
 
 From the repo directory, test your service with docker-compose:
