@@ -25,7 +25,7 @@ $ docker-compose build
 Test restful api with curl:
 
 ```sh
-$ curl localhost:8080/get?filename=testdata/music.mp3 -4 -v > test_chunk_music.mp3
+$ curl "localhost:8080/get?filename=testdata/music.mp3" -4 -v > test_chunk_music.mp3
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 127.0.0.1...
