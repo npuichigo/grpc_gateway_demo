@@ -20,7 +20,7 @@ services:
       context: ./
       dockerfile: ./docker/grpc_gateway/Dockerfile
     image: npuichigo/grpc-gateway
-    command: ["--proxy_endpoint", "grpc-server:9090"]
+    command: ["--endpoint", "grpc-server:9090"]
     networks:
       - overlay
     links:
