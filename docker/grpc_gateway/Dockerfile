@@ -20,6 +20,8 @@ RUN go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway && 
     go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger && \
     go get -u github.com/golang/protobuf/protoc-gen-go
 
+# grpc-gateway does not support stream google.api.HttpBody well. Will remove these lines if the
+# pr is merged (https://github.com/grpc-ecosystem/grpc-gateway/pull/1088).
 RUN git clone https://github.com/npuichigo/grpc-gateway.git /github/npuichigo/grpc-gateway && \
     cp -r /github/npuichigo/grpc-gateway/runtime $GOPATH/src/github.com/grpc-ecosystem/grpc-gateway && \
     rm -rf /github

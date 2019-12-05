@@ -9,8 +9,9 @@ import (
 )
 
 var (
-		endpoint   = flag.String("endpoint", "localhost:9090", "endpoint of the gRPC service")
-		network    = flag.String("network", "tcp", `one of "tcp" or "unix". Must be consistent to -endpoint`)
+	address = flag.String("address", "0.0.0.0:8080", "http port to listen on for proxy server")
+	endpoint = flag.String("endpoint", "localhost:9090", "endpoint of the gRPC service")
+	network = flag.String("network", "tcp", `one of "tcp" or "unix". Must be consistent to -endpoint`)
 )
 
 func init() {
@@ -23,7 +24,7 @@ func main() {
 
 	ctx := context.Background()
 	opts := gateway.Options{
-		Addr: ":8080",
+		Addr: *address,
 		GRPCServer: gateway.Endpoint{
 			Network: *network,
 			Addr:    *endpoint,
