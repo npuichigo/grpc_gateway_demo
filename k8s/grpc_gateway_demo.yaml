@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-deployment
+  labels:
+    app: demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+      - name: grpc-server
+        image: npuichigo/grpc-server
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: grpc-server-data
+          mountPath: /grpc_gateway_demo/testdata
+      - name: grpc-gateway
+        image: npuichigo/grpc-gateway
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: grpc-server-data
+        persistentVolumeClaim:
+          claimName: grpc-server-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: demo
+  ports:
+  - port: 8080
+    targetPort: 8080
