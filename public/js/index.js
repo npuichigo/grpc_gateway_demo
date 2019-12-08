@@ -8,8 +8,7 @@ function getSomething() {
   if (trim(filename).length == 0) {
     alert("Please input the file name");
   } else {
-    var url = "http://" + window.location.hostname + ":8080" + "/get?";
-    url += encodeURI("filename=" + filename)
+    var url = encodeURI("/get?filename=" + filename)
     var player = document.getElementById('player');
     player.src = url;
     player.play();
