@@ -66,6 +66,19 @@ You can now use your browser to play the streaming media.
 <img src="https://github.com/npuichigo/grpc_gateway_demo/blob/master/images/play_mp3.png"/>
 <img src="https://github.com/npuichigo/grpc_gateway_demo/blob/master/images/header.png" width="500"/>
 
+## Deploy with kubernetes
+```sh
+# Create storage class, pv, and pvc
+kubectl apply -f k8s/grpc_gateway_demo_storage.yaml
+# Deploy grpc gateway demo backend pods and gateway service
+kubectl apply -f k8s/grpc_gateway_demo.yaml
+
+# Create config map for nginx configuration
+kubectl create configmap nginx-config --from-file=config/nginx.conf
+# Deploy nginx frontend
+kubectl apply -f k8s/nginx.yaml
+```
+
 ## Test with grpc client
 
 Just start with the docker image grpc-server:

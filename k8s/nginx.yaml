@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: npuichigo/nginx
+        imagePullPolicy: Always
+        args: [
+          "-c", "/etc/nginx/custom/nginx.conf",
+        ]
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/custom
+          readOnly: true
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: config
+        configMap:
+          name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
