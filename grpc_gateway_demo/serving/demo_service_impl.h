@@ -37,7 +37,7 @@ class DemoServiceImpl final : public Demo::Service {
   ::grpc::Status GetSomething(
       ::grpc::ServerContext* context,
       const GetRequest* request,
-      ::grpc::ServerWriter<::google::api::HttpBody>* writer) override;
+      GetResponse* reply) override;
 };
 
 }  // namespace serving

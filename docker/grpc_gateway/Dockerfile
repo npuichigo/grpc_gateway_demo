@@ -29,6 +29,7 @@ RUN git clone https://github.com/npuichigo/grpc-gateway.git /github/npuichigo/gr
 ENV GRPC_GATEWAY_PATH $GOPATH/src/github.com/npuichigo/grpc_gateway_demo/grpc_gateway
 
 COPY ./grpc_gateway_demo/grpc_gateway $GRPC_GATEWAY_PATH
+RUN mkdir -p $GRPC_GATEWAY_PATH/service_gw
 
 COPY ./grpc_gateway_demo/proto /grpc_gateway_demo/grpc_gateway_demo/proto
 RUN protoc -I/grpc_gateway_demo/grpc_gateway_demo/proto \
@@ -49,10 +50,10 @@ RUN cd $GRPC_GATEWAY_PATH/service_gw && \
     go build && \
     go install
 
-FROM ubuntu:16.04
-COPY --from=build /usr/local/bin /usr/local/bin
-COPY --from=build /usr/local/lib /usr/local/lib
-COPY --from=build /go/bin /go/bin
+#FROM ubuntu:16.04
+#COPY --from=build /usr/local/bin /usr/local/bin
+#COPY --from=build /usr/local/lib /usr/local/lib
+#COPY --from=build /go/bin /go/bin
 
-EXPOSE 8080
-ENTRYPOINT ["/go/bin/proxy_server"]
+#EXPOSE 8080
+#ENTRYPOINT ["/go/bin/proxy_server"]

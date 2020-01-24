@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 
+#include "Eigen/Dense"
 #include "glog/logging.h"
 
 namespace grpc_gateway_demo {
@@ -49,9 +50,8 @@ static bool ReadFile(const std::string& filename, Callback callback) {
 ::grpc::Status DemoServiceImpl::GetSomething(
     ::grpc::ServerContext* context,
     const GetRequest* request,
-    ::grpc::ServerWriter<::google::api::HttpBody>* writer) {
+    GetResponse* reply) {
   auto filename = request->filename();
-  LOG(INFO) << "Get audio from grpc server: " << filename;
 
   std::string extension = filename.substr(filename.find_last_of(".") + 1);
   std::string content_type;
@@ -62,17 +62,17 @@ static bool ReadFile(const std::string& filename, Callback callback) {
   else
     content_type = "application/json";
 
-  bool ok = ReadFile(filename, [&](const void* value, size_t size) -> bool {
-    ::google::api::HttpBody reply;
-    reply.set_content_type(content_type);
-    reply.set_data(value, size);
-    return writer->Write(reply);
-  });
+  using Eigen::MatrixXf;
+  const int size = 1024;
+  Eigen::setNbThreads(4);
+  MatrixXf m1 = MatrixXf::Random(size, size);
+  MatrixXf m2 = MatrixXf::Random(size, size);
+  MatrixXf m3(size, size);
+  m3.noalias() = m1 * m2;
+  LOG(INFO) << "Done";
 
-  if (!ok)
-    return ::grpc::Status::CANCELLED;
-  else
-    return ::grpc::Status::OK;
+  reply->set_content(content_type);
+  return ::grpc::Status::OK;
 }
 
 }  // namespace serving

@@ -37,5 +37,5 @@ list(APPEND grpc_gateway_demo_MAIN_LIBS -Wl,--whole-archive grpc_gateway_demo -W
 add_executable(grpc_server serving/main.cc)
 target_link_libraries(grpc_server ${grpc_gateway_demo_MAIN_LIBS})
 
-add_executable(grpc_test_client serving/grpc_test_client.cc)
-target_link_libraries(grpc_test_client ${grpc_gateway_demo_MAIN_LIBS})
+#add_executable(grpc_test_client serving/grpc_test_client.cc)
+#target_link_libraries(grpc_test_client ${grpc_gateway_demo_MAIN_LIBS})
