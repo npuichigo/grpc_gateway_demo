@@ -42,10 +42,10 @@ int main(int argc, char** argv) {
     gflags::ShowUsageWithFlagsRestrict(argv[0], "main");
   }
 
-  grpc_gateway_demo::serving::main::Server::Options options;
+  grpc_gateway_demo::serving::Server::Options options;
   options.grpc_port = FLAGS_port;
 
-  grpc_gateway_demo::serving::main::Server server;
+  grpc_gateway_demo::serving::Server server;
   auto state = server.BuildAndStart(options);
   if (!state) {
     LOG(ERROR) << "Failed to start server.";

@@ -1,6 +1,7 @@
 set(grpc_gateway_demo_SRCS)
 
 # Add respective subdirectories
+add_subdirectory(lib)
 add_subdirectory(serving)
 
 # Generated protobuf sources

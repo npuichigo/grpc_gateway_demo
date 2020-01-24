@@ -28,7 +28,6 @@
 
 namespace grpc_gateway_demo {
 namespace serving {
-namespace main {
 
 const int kint32max = ((int)0x7FFFFFFF);
 
@@ -43,28 +42,41 @@ bool Server::BuildAndStart(const Options& server_options) {
   const std::string server_address =
       "0.0.0.0:" + std::to_string(server_options.grpc_port);
 
-  demo_service_.reset(new DemoServiceImpl());
-  ::grpc::ServerBuilder builder;
   // Listen on the given address without any authentication mechanism.
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  grpc_builder_.AddListeningPort(
+      server_address, grpc::InsecureServerCredentials());                     
   // Register service through which we'll communicate with clients
-  builder.RegisterService(demo_service_.get());
-  builder.SetMaxMessageSize(kint32max);
-  grpc_server_ = builder.BuildAndStart();
+  grpc_builder_.SetMaxMessageSize(kint32max);
+  grpc_builder_.RegisterService(&service_);
+  cq_ = grpc_builder_.AddCompletionQueue();
+  grpc_server_ = grpc_builder_.BuildAndStart();
   if (grpc_server_ == nullptr) {
     LOG(ERROR) << "Failed to BuildAndStart gRPC server";
     return false;
   }
   LOG(INFO) << "Running gRPC Server at " << server_address << " ...";
+
+  pool_.reset(new thread::ThreadPool(4));
+
   return true;
 }
 
 void Server::WaitForTermination() {
-  if (grpc_server_ != nullptr) {
-    grpc_server_->Wait();
+  // Spawn a new CallData instance to serve new clients.
+  new CallData(&service_, cq_.get(), pool_.get());
+  void* tag;  // uniquely identifies a request.
+  bool ok;
+  while (true) {
+    // Block waiting to read the next event from the completion queue. The
+    // event is uniquely identified by its tag, which in this case is the
+    // memory address of a CallData instance.
+    // The return value of Next should always be checked. This return value
+    // tells us whether there is any kind of event or cq_ is shutting down.
+    GPR_ASSERT(cq_->Next(&tag, &ok));
+    GPR_ASSERT(ok);
+    static_cast<CallData*>(tag)->Proceed();
   }
 }
 
-}  // namespace main
 }  // namespace serving
 }  // namespace grpc_gateway_demo
