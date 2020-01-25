@@ -34,7 +34,6 @@ void ThreadPool::ThreadFunc(int thread_id) {
       auto cb = callbacks_.front();
       callbacks_.pop();
       lock.unlock();
-      LOG(INFO) << "Thread (" << thread_id << ") processing";
       cb();
     } else if (shutdown_) {
       return;

@@ -101,7 +101,6 @@ class Server {
           MatrixXf m2 = MatrixXf::Random(size, size);
           MatrixXf m3(size, size);
           m3.noalias() = m1 * m2;
-          LOG(INFO) << "Done";
           reply_.set_content(content_type);
           // And we are done! Let the gRPC runtime know we've finished, using the
           // memory address of this instance as the uniquely identifying tag for
@@ -115,7 +114,6 @@ class Server {
         delete this;
       }
     }
-
    private:
     // The means of communication with the gRPC runtime for an asynchronous
     // server.
@@ -139,6 +137,7 @@ class Server {
 
     // Let's implement a tiny state machine with the following states.
     enum CallStatus { CREATE, PROCESS, FINISH };
+   public:
     CallStatus status_;  // The current serving state.
   };
 
