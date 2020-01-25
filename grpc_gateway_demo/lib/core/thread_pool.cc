@@ -32,6 +32,7 @@ void ThreadPool::ThreadFunc(int thread_id) {
     // gets completed.
     if (!callbacks_.empty()) {
       auto cb = callbacks_.front();
+      VLOG(1) << "Task queue size: " << callbacks_.size();
       callbacks_.pop();
       lock.unlock();
       cb();

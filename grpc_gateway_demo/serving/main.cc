@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   grpc_gateway_demo::serving::Server::Options options;
   options.grpc_port = FLAGS_port;
 
-  grpc_gateway_demo::serving::Server server;
+  grpc_gateway_demo::serving::Server server("inference:0");
   auto state = server.BuildAndStart(options);
   if (!state) {
     LOG(ERROR) << "Failed to start server.";

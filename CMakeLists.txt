@@ -33,7 +33,9 @@ endif()
 include(cmake/dependencies.cmake)
 
 # Build flags
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -march=native -O3")
 
 # Prefix path to grpc_gateway_demo headers.
 include_directories(BEFORE ${grpc_gateway_demo_SOURCE_DIR})
