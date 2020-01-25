@@ -69,7 +69,6 @@ static bool ReadFile(const std::string& filename, Callback callback) {
   MatrixXf m2 = MatrixXf::Random(size, size);
   MatrixXf m3(size, size);
   m3.noalias() = m1 * m2;
-  LOG(INFO) << "Done";
 
   reply->set_content(content_type);
   return ::grpc::Status::OK;
