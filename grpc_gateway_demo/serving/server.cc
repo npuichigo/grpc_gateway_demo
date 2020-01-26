@@ -449,8 +449,8 @@ bool InferHandler::Process(Handler::State* state, bool rpc_ok) {
     state->step_ = ISSUED;
     //pool_->ScheduleCallback([state] {
     pool_->add([state] {
-      const GetRequest& request = state->request_;
-      GetResponse& response = state->response_;
+      const auto& request = state->request_;
+      auto& response = state->response_;
 
       auto filename = request.filename();
       std::string extension = filename.substr(filename.find_last_of(".") + 1);
@@ -510,7 +510,7 @@ bool Server::BuildAndStart(const Options& server_options) {
     return false;
   }
 
-  pool_.reset(new folly::CPUThreadPoolExecutor(2));
+  pool_.reset(new folly::CPUThreadPoolExecutor(5));
 
   // Handler for inference requests. 'infer_thread_cnt_' is not used
   // below due to thread-safety requirements and the way
