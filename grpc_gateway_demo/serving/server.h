@@ -19,12 +19,12 @@
 
 #include <memory>
 
-#include <grpcpp/grpcpp.h>
-#include <grpc/support/log.h>
-
-#include "grpc_gateway_demo/serving/demo_service.grpc.pb.h"
+#include "folly/executors/CPUThreadPoolExecutor.h"
+#include "grpc/support/log.h"
+#include "grpcpp/grpcpp.h"
 #include "glog/logging.h"
 #include "grpc_gateway_demo/lib/core/thread_pool.h"
+#include "grpc_gateway_demo/serving/demo_service.grpc.pb.h"
 
 namespace grpc_gateway_demo {
 namespace serving {
@@ -36,7 +36,7 @@ class Server {
     int grpc_port = 9090;
   };
 
-  Server(const char* server_id); 
+  Server(const char* server_id);
 
   // Blocks the current thread waiting for servers (if any)
   // started as part of BuildAndStart() call.
@@ -53,23 +53,24 @@ class Server {
   class HandlerBase {
    public:
     virtual ~HandlerBase() = default;
-  }; 
+  };
 
  private:
   const char* server_id_;
   const int infer_allocation_pool_size_;
 
-  std::shared_ptr<thread::ThreadPool> pool_;
+  //std::shared_ptr<thread::ThreadPool> pool_;
+  std::shared_ptr<folly::CPUThreadPoolExecutor> pool_;
 
   std::unique_ptr<grpc::ServerCompletionQueue> cq_;
 
-  grpc::ServerBuilder grpc_builder_; 
+  grpc::ServerBuilder grpc_builder_;
   std::unique_ptr<grpc::Server> grpc_server_;
 
   std::unique_ptr<HandlerBase> infer_handler_;
 
   Demo::AsyncService service_;
-  bool running_; 
+  bool running_;
 };
 
 }  // namespace serving

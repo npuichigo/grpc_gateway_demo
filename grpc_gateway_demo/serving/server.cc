@@ -245,7 +245,8 @@ class Handler : public Server::HandlerBase {
  public:
   Handler(
       const std::string& name,
-      const std::shared_ptr<thread::ThreadPool>& pool,
+      const std::shared_ptr<folly::CPUThreadPoolExecutor>& pool,
+      //const std::shared_ptr<thread::ThreadPool>& pool,
       const char* server_id,
       ServiceType* service, grpc::ServerCompletionQueue* cq,
       size_t max_state_bucket_count);
@@ -304,7 +305,8 @@ class Handler : public Server::HandlerBase {
   virtual bool Process(State* state, bool rpc_ok) = 0;
 
   const std::string name_;
-  std::shared_ptr<thread::ThreadPool> pool_;
+  std::shared_ptr<folly::CPUThreadPoolExecutor> pool_;
+  //std::shared_ptr<thread::ThreadPool> pool_;
   const char* const server_id_;
 
   ServiceType* service_;
@@ -324,7 +326,8 @@ template <
     typename ServiceType, typename ServerResponderType, typename RequestType,
     typename ResponseType>
 Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::Handler(
-    const std::string& name, const std::shared_ptr<thread::ThreadPool>& pool,
+    //const std::string& name, const std::shared_ptr<thread::ThreadPool>& pool,
+    const std::string& name, const std::shared_ptr<folly::CPUThreadPoolExecutor>& pool,
     const char* server_id, ServiceType* service,
     grpc::ServerCompletionQueue* cq, size_t max_state_bucket_count)
     : name_(name), pool_(pool), server_id_(server_id),
@@ -394,7 +397,8 @@ class InferHandler : public Handler<
  public:
   InferHandler(
       const std::string& name,
-      const std::shared_ptr<thread::ThreadPool>& pool, const char* server_id,
+      const std::shared_ptr<folly::CPUThreadPoolExecutor>& pool, const char* server_id,
+      //const std::shared_ptr<thread::ThreadPool>& pool, const char* server_id,
       Demo::AsyncService* service, grpc::ServerCompletionQueue* cq,
       size_t max_state_bucket_count)
       : Handler(
@@ -443,7 +447,8 @@ bool InferHandler::Process(Handler::State* state, bool rpc_ok) {
     }
     // Async call the worker.
     state->step_ = ISSUED;
-    pool_->ScheduleCallback([state] {
+    //pool_->ScheduleCallback([state] {
+    pool_->add([state] {
       const GetRequest& request = state->request_;
       GetResponse& response = state->response_;
 
@@ -494,7 +499,7 @@ bool Server::BuildAndStart(const Options& server_options) {
 
   // Listen on the given address without any authentication mechanism.
   grpc_builder_.AddListeningPort(
-      server_address, grpc::InsecureServerCredentials());                     
+      server_address, grpc::InsecureServerCredentials());
   // Register service through which we'll communicate with clients
   grpc_builder_.SetMaxMessageSize(kint32max);
   grpc_builder_.RegisterService(&service_);
@@ -505,7 +510,7 @@ bool Server::BuildAndStart(const Options& server_options) {
     return false;
   }
 
-  pool_.reset(new thread::ThreadPool(4));
+  pool_.reset(new folly::CPUThreadPoolExecutor(2));
 
   // Handler for inference requests. 'infer_thread_cnt_' is not used
   // below due to thread-safety requirements and the way

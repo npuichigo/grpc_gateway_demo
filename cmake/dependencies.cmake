@@ -81,3 +81,6 @@ else()
   set(EIGEN3_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/../third_party/eigen3)
 endif()
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
+
+find_package(Folly)
+list(APPEND grpc_gateway_demo_DEPENDENCY_LIBS Folly::folly)
