@@ -46,8 +46,7 @@ class Barrier {
  public:
   explicit Barrier(size_t cnt) : threshold_(cnt), count_(cnt), generation_(0) {}
 
-  void Wait()
-  {
+  void Wait() {
     std::unique_lock<std::mutex> lock(mu_);
     auto lgen = generation_;
     if (--count_ == 0) {
@@ -79,8 +78,7 @@ typedef enum {
   WRITTEN
 } Steps;
 
-std::ostream&
-operator<<(std::ostream& out, const Steps& step) {
+std::ostream& operator<<(std::ostream& out, const Steps& step) {
   switch (step) {
     case START:
       out << "START";
@@ -112,8 +110,8 @@ uint64_t NextUniqueRequestId() {
   return ++id;
 }
 
-template <
-    typename ServerResponderType, typename RequestType, typename ResponseType>
+template <typename ServerResponderType, typename RequestType,
+          typename ResponseType>
 class HandlerState {
  public:
   using HandlerStateType =
@@ -123,7 +121,9 @@ class HandlerState {
   // transaction (e.g. a stream).
   struct Context {
     explicit Context(const char* server_id, const uint64_t unique_id = 0)
-        : server_id_(server_id), unique_id_(unique_id), step_(Steps::START),
+        : server_id_(server_id),
+          unique_id_(unique_id),
+          step_(Steps::START),
           finish_ok_(true) {
       ctx_.reset(new grpc::ServerContext());
       responder_.reset(new ServerResponderType(ctx_.get()));
@@ -186,6 +186,23 @@ class HandlerState {
       return ((step_ == Steps::WRITEREADY) && states_.empty());
     }
 
+    // Enqueue 'extra_data' to spawn new events in correct order.
+    void EnqueueForExtraData(void* extra_data) {
+      std::lock_guard<std::mutex> lock(extra_data_mu_);
+      extra_data_.push(extra_data);
+    }
+
+    bool PopForExtraData(void** extra_data) {
+      std::lock_guard<std::mutex> lock(extra_data_mu_);
+      if (extra_data_.empty()) {
+        return false;
+      }
+
+      *extra_data = extra_data_.front();
+      extra_data_.pop();
+      return true;
+    }
+
     // ID for the server this context is on
     const char* const server_id_;
 
@@ -204,6 +221,12 @@ class HandlerState {
     // a request and exits the queue when it is written.
     std::mutex mu_;
     std::queue<HandlerStateType*> states_;
+
+    // The extra data used by stream handlers with unary request and
+    // stream response. We need to split unary request into multiple
+    // events and store them here to process.
+    std::mutex extra_data_mu_;
+    std::queue<void*> extra_data_;
 
     // The step of the entire context.
     Steps step_;
@@ -238,17 +261,14 @@ class HandlerState {
   ResponseType response_;
 };
 
-template <
-    typename ServiceType, typename ServerResponderType, typename RequestType,
-    typename ResponseType>
+template <typename ServiceType, typename ServerResponderType,
+          typename RequestType, typename ResponseType>
 class Handler : public Server::HandlerBase {
  public:
-  Handler(
-      const std::string& name,
-      const std::shared_ptr<thread::ThreadPool>& pool,
-      const char* server_id,
-      ServiceType* service, grpc::ServerCompletionQueue* cq,
-      size_t max_state_bucket_count);
+  Handler(const std::string& name,
+          const std::shared_ptr<thread::ThreadPool>& pool,
+          const char* server_id, ServiceType* service,
+          grpc::ServerCompletionQueue* cq, size_t max_state_bucket_count);
   virtual ~Handler();
 
   // Descriptive name of of the handler.
@@ -264,9 +284,8 @@ class Handler : public Server::HandlerBase {
   using State = HandlerState<ServerResponderType, RequestType, ResponseType>;
   using StateContext = typename State::Context;
 
-  State* StateNew(
-      const std::shared_ptr<StateContext>& context,
-      Steps start_step = Steps::START) {
+  State* StateNew(const std::shared_ptr<StateContext>& context,
+                  Steps start_step = Steps::START) {
     State* state = nullptr;
 
     if (max_state_bucket_count_ > 0) {
@@ -320,21 +339,23 @@ class Handler : public Server::HandlerBase {
   std::vector<State*> state_bucket_;
 };
 
-template <
-    typename ServiceType, typename ServerResponderType, typename RequestType,
-    typename ResponseType>
+template <typename ServiceType, typename ServerResponderType,
+          typename RequestType, typename ResponseType>
 Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::Handler(
     const std::string& name, const std::shared_ptr<thread::ThreadPool>& pool,
     const char* server_id, ServiceType* service,
     grpc::ServerCompletionQueue* cq, size_t max_state_bucket_count)
-    : name_(name), pool_(pool), server_id_(server_id),
-      service_(service), cq_(cq),
+    : name_(name),
+      pool_(pool),
+      server_id_(server_id),
+      service_(service),
+      cq_(cq),
       max_state_bucket_count_(max_state_bucket_count) {}
 
-template <
-    typename ServiceType, typename ServerResponderType, typename RequestType,
-    typename ResponseType>
-Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::~Handler() {
+template <typename ServiceType, typename ServerResponderType,
+          typename RequestType, typename ResponseType>
+Handler<ServiceType, ServerResponderType, RequestType,
+        ResponseType>::~Handler() {
   for (State* state : state_bucket_) {
     delete state;
   }
@@ -343,12 +364,10 @@ Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::~Handler()
   VLOG(1) << "Destructed " << Name();
 }
 
-template <
-    typename ServiceType, typename ServerResponderType, typename RequestType,
-    typename ResponseType>
-void
-Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::Start(
-    int thread_cnt) {
+template <typename ServiceType, typename ServerResponderType,
+          typename RequestType, typename ResponseType>
+void Handler<ServiceType, ServerResponderType, RequestType,
+             ResponseType>::Start(int thread_cnt) {
   // Use a barrier to make sure we don't return until all threads have
   // started.
   auto barrier = std::make_shared<Barrier>(thread_cnt + 1);
@@ -375,11 +394,10 @@ Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::Start(
   VLOG(1) << "Threads started for " << Name();
 }
 
-template <
-    typename ServiceType, typename ServerResponderType, typename RequestType,
-    typename ResponseType>
-void
-Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::Stop() {
+template <typename ServiceType, typename ServerResponderType,
+          typename RequestType, typename ResponseType>
+void Handler<ServiceType, ServerResponderType, RequestType,
+             ResponseType>::Stop() {
   for (const auto& thread : threads_) {
     thread->join();
   }
@@ -387,18 +405,16 @@ Handler<ServiceType, ServerResponderType, RequestType, ResponseType>::Stop() {
   VLOG(1) << "Threads exited for " << Name();
 }
 
-class InferHandler : public Handler<
-                         Demo::AsyncService,
-                         grpc::ServerAsyncResponseWriter<GetResponse>,
-                         GetRequest, GetResponse> {
+/*class InferHandler
+    : public Handler<Demo::AsyncService,
+                     grpc::ServerAsyncResponseWriter<GetResponse>, GetRequest,
+                     GetResponse> {
  public:
-  InferHandler(
-      const std::string& name,
-      const std::shared_ptr<thread::ThreadPool>& pool, const char* server_id,
-      Demo::AsyncService* service, grpc::ServerCompletionQueue* cq,
-      size_t max_state_bucket_count)
-      : Handler(
-            name, pool, server_id, service, cq, max_state_bucket_count) {}
+  InferHandler(const std::string& name,
+               const std::shared_ptr<thread::ThreadPool>& pool,
+               const char* server_id, Demo::AsyncService* service,
+               grpc::ServerCompletionQueue* cq, size_t max_state_bucket_count)
+      : Handler(name, pool, server_id, service, cq, max_state_bucket_count) {}
 
  protected:
   void StartNewRequest() override;
@@ -409,12 +425,11 @@ void InferHandler::StartNewRequest() {
   auto context = std::make_shared<State::Context>(server_id_);
   State* state = StateNew(context);
 
-  service_->RequestGetSomething(
-      state->context_->ctx_.get(), &state->request_,
-      state->context_->responder_.get(), cq_, cq_, state);
+  service_->RequestGetSomething(state->context_->ctx_.get(), &state->request_,
+                                state->context_->responder_.get(), cq_, cq_,
+                                state);
 
-  VLOG(1) << "New request handler for " << Name() << ", "
-          << state->unique_id_;
+  VLOG(1) << "New request handler for " << Name() << ", " << state->unique_id_;
 }
 
 bool InferHandler::Process(Handler::State* state, bool rpc_ok) {
@@ -442,7 +457,7 @@ bool InferHandler::Process(Handler::State* state, bool rpc_ok) {
       StartNewRequest();
     }
     // Async call the worker.
-    state->step_ = ISSUED;
+    state->step_ = Steps::ISSUED;
     pool_->ScheduleCallback([state] {
       const GetRequest& request = state->request_;
       GetResponse& response = state->response_;
@@ -467,9 +482,114 @@ bool InferHandler::Process(Handler::State* state, bool rpc_ok) {
       MatrixXf m3(size, size);
       m3.noalias() = m1 * m2;
 
-      state->step_ = COMPLETE;
+      state->step_ = Steps::COMPLETE;
       state->context_->responder_->Finish(response, grpc::Status::OK, state);
     });
+  } else if (state->step_ == Steps::COMPLETE) {
+    state->step_ = Steps::FINISH;
+    finished = true;
+  }
+
+  return !finished;
+}*/
+
+// StreamInferHandler
+class StreamInferHandler
+    : public Handler<Demo::AsyncService,
+                     grpc::ServerAsyncWriter<::google::api::HttpBody>,
+                     GetRequest, ::google::api::HttpBody> {
+ public:
+  StreamInferHandler(const std::string& name,
+                     const std::shared_ptr<thread::ThreadPool>& pool,
+                     const char* server_id, Demo::AsyncService* service,
+                     grpc::ServerCompletionQueue* cq,
+                     size_t max_state_bucket_count)
+      : Handler(name, pool, server_id, service, cq, max_state_bucket_count) {}
+
+ protected:
+  void StartNewRequest() override;
+  bool Process(State* state, bool rpc_ok) override;
+};
+
+void StreamInferHandler::StartNewRequest() {
+  const uint64_t unique_id = NextUniqueRequestId();
+  auto context = std::make_shared<State::Context>(server_id_, unique_id);
+  State* state = StateNew(context);
+  service_->RequestGetSomething(state->context_->ctx_.get(), &state->request_,
+                                state->context_->responder_.get(), cq_, cq_,
+                                state);
+
+  VLOG(1) << "New request handler for " << Name() << ", " << state->unique_id_;
+}
+
+bool StreamInferHandler::Process(Handler::State* state, bool rpc_ok) {
+  VLOG(1) << "Process for " << Name() << ", rpc_ok=" << rpc_ok << ", context "
+          << state->context_->unique_id_ << ", " << state->unique_id_
+          << " step " << state->step_;
+
+  // We need an explicit finish indicator. Can't use 'state->step_'
+  // because we launch an async thread that could update 'state's
+  // step_ to be FINISH before this thread exits this function.
+  bool finished = false;
+
+  if (state->step_ == Steps::START) {
+    // A new stream connection... If RPC failed on a new request then
+    // the server is shutting down and so we should do nothing.
+    if (!rpc_ok) {
+      state->step_ = Steps::FINISH;
+      return false;
+    }
+
+    // Start a new request to replace this one...
+    StartNewRequest();
+
+    for (int i = 0; i < 10; ++i) {
+      void* extra_data = reinterpret_cast<void*>(new int(i));
+      state->context_->EnqueueForExtraData(extra_data);
+    }
+
+    // Since this is the start of a connection, 'state' hasn't been
+    // used yet so use it to read a request off the connection.
+    state->step_ = Steps::WRITTEN;
+    // state->context_->responder_->Write(state->response_, state);
+    state->context_->responder_->SendInitialMetadata(state);
+  } else if (state->step_ == Steps::WRITTEN) {
+    // If the write failed (for example, client closed the stream)
+    // mark that the stream did not complete successfully but don't
+    // cancel right away... need to wait for any pending inferences
+    // and writes to complete.
+    if (!rpc_ok) {
+      VLOG(1) << "Write for " << Name() << ", rpc_ok=" << rpc_ok << ", context "
+              << state->context_->unique_id_ << ", " << state->unique_id_
+              << " step " << state->step_ << ", failed";
+      state->context_->finish_ok_ = false;
+    }
+
+    void* data = nullptr;
+    if (!state->context_->PopForExtraData(&data)) {
+      state->context_->step_ = Steps::COMPLETE;
+      state->step_ = Steps::COMPLETE;
+      state->context_->responder_->Finish(state->context_->finish_ok_
+                                              ? grpc::Status::OK
+                                              : grpc::Status::CANCELLED,
+                                          state);
+    } else {
+      // Async call the worker.
+      state->step_ = Steps::ISSUED;
+      pool_->ScheduleCallback([state, data]() mutable {
+        int value = *reinterpret_cast<int*>(data);
+        delete reinterpret_cast<int*>(data);
+        auto& response = state->response_;
+
+        std::string content_type = "application/json";
+        response.set_content_type(content_type);
+        std::string json_str = "{\"key1\":\"" + std::to_string(value) + "\"}";
+        response.set_data(json_str.c_str(), json_str.size());
+
+        state->step_ = WRITTEN;
+        state->context_->responder_->Write(response, state);
+      });
+    }
   } else if (state->step_ == Steps::COMPLETE) {
     state->step_ = Steps::FINISH;
     finished = true;
@@ -493,8 +613,8 @@ bool Server::BuildAndStart(const Options& server_options) {
       "0.0.0.0:" + std::to_string(server_options.grpc_port);
 
   // Listen on the given address without any authentication mechanism.
-  grpc_builder_.AddListeningPort(
-      server_address, grpc::InsecureServerCredentials());                     
+  grpc_builder_.AddListeningPort(server_address,
+                                 grpc::InsecureServerCredentials());
   // Register service through which we'll communicate with clients
   grpc_builder_.SetMaxMessageSize(kint32max);
   grpc_builder_.RegisterService(&service_);
@@ -512,11 +632,22 @@ bool Server::BuildAndStart(const Options& server_options) {
   // InferHandler::Process is written. We should likely implement it
   // by making multiple completion queues each of which is serviced by
   // a single thread.
-  InferHandler* hinfer = new InferHandler(
-      "InferHandler", pool_, server_id_, &service_, cq_.get(),
+  // InferHandler* hinfer = new InferHandler(
+  //    "InferHandler", pool_, server_id_, &service_, cq_.get(),
+  //    infer_allocation_pool_size_ /* max_state_bucket_count */);
+  // hinfer->Start(/* infer_thread_cnt_ */ 1);
+  // infer_handler_.reset(hinfer);
+
+  // Handler for streaming inference requests.
+  // 'stream_infer_thread_cnt_' is not used below due to thread-safety
+  // requirements and the way StreamInferHandler::Process is
+  // written. We should likely implement it by making multiple
+  // completion queues each of which is serviced by a single thread.
+  StreamInferHandler* hstreaminfer = new StreamInferHandler(
+      "StreamInferHandler", pool_, server_id_, &service_, cq_.get(),
       infer_allocation_pool_size_ /* max_state_bucket_count */);
-  hinfer->Start(/* infer_thread_cnt_ */ 1);
-  infer_handler_.reset(hinfer);
+  hstreaminfer->Start(/* stream_infer_thread_cnt_ */ 1);
+  stream_infer_handler_.reset(hstreaminfer);
 
   running_ = true;
   LOG(INFO) << "Running gRPC Server at " << server_address << " ...";
@@ -537,8 +668,7 @@ void SignalHandler(int signum) {
   LOG(INFO) << "Interrupt signal (" << signum << ") received.";
 
   // Do nothing if already exiting...
-  if (exiting_)
-    return;
+  if (exiting_) return;
 
   {
     std::unique_lock<std::mutex> lock(exit_mu_);
@@ -548,7 +678,7 @@ void SignalHandler(int signum) {
   exit_cv_.notify_all();
 }
 
-} // namespace
+}  // namespace
 
 void Server::WaitForTermination() {
   // Trap SIGINT and SIGTERM to allow server to exit gracefully

@@ -21,9 +21,10 @@ option cc_enable_arenas = true;
 package grpc_gateway_demo.serving;
 
 import "google/api/annotations.proto";
+import "google/api/httpbody.proto";
 
 service Demo {
-  rpc GetSomething(GetRequest) returns (GetResponse) {
+  rpc GetSomething(GetRequest) returns (stream google.api.HttpBody) {
     option (google.api.http) = {
       get: "/get"
     };
@@ -32,8 +33,4 @@ service Demo {
 
 message GetRequest {
   string filename = 1;
-}
-
-message GetResponse {
-  string content = 1;
 }
